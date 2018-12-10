@@ -9,6 +9,8 @@ import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -38,14 +40,17 @@ public class MainActivity extends AppCompatActivity {
     private WifiManager wifiManager;
     private ListView listView;
     private Button buttonScan;
+    private Button refreshButton;
     private int size = 0;
     private List<ScanResult> results;
     private ArrayList<String> arrayList = new ArrayList<>();
     private ArrayAdapter adapter;
     private static DecimalFormat df2 = new DecimalFormat(".##");
-//    private String[] targetAP = {"04:4f:4c:0c:a2:bb", "4c:5e:0c:9d:fb:ff", "10:fe:ed:9b:93:ac"};
     private static final Set<String> targetAP = new HashSet<String>(Arrays.asList(
-            new String[] {"04:4f:4c:0c:a2:bb", "4c:5e:0c:9d:fb:ff", "10:fe:ed:9b:93:ac"}
+//            new String[] {"04:4f:4c:0c:a2:bb", "4c:5e:0c:9d:fb:ff", "90:c7:d8:ba:38:b2"} //huawei, ajk, andro
+            new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "14:dd:a9:3c:88:59"} //huawei, andro, asus
+//            new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "0a:c5:e1:04:c6:bd"} //huawei, andro, zollav
+//            new String[] {"08:3f:bc:c0:aa:52", "4c:5e:0c:9d:fb:ff", "10:fe:ed:9b:93:ac"}
     ));
     Map<String, List<Integer>> map = new HashMap<String, List<Integer>>();
 
@@ -61,6 +66,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        refreshButton = (Button) findViewById(R.id.refreshBtn);
+        refreshButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                refreshVar();
+            }
+        });
+
         listView = (ListView) findViewById(R.id.wifiList);
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
@@ -72,6 +85,12 @@ public class MainActivity extends AppCompatActivity {
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arrayList);
         listView.setAdapter(adapter);
         scanWifi();
+    }
+
+    private void refreshVar() {
+        map.clear();
+        arrayList.clear();
+        adapter.notifyDataSetChanged();
     }
 
     private void scanWifi() {
@@ -100,16 +119,19 @@ public class MainActivity extends AppCompatActivity {
                 if (!targetAP.contains(scanResult.BSSID)) continue;
                 int distance = strengthMeter(scanResult.level,scanResult.frequency);
 
-                if (map.get(scanResult.BSSID+" "+scanResult.SSID) == null) map.put(scanResult.BSSID+" "+scanResult.SSID, new Vector<Integer>());
-                map.get(scanResult.BSSID+" "+scanResult.SSID).add(distance);
+                if (map.get(scanResult.BSSID) == null) map.put(scanResult.BSSID, new Vector<Integer>());
+                map.get(scanResult.BSSID).add(distance);
             }
 
             final TextView xy = (TextView) findViewById(R.id.xy);
             RequestQueue queue = Volley.newRequestQueue(context);
             String distanceAP = "";
-            for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
-                distanceAP += "/" + entry.getValue().get(0);
-            }
+//            for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
+//                distanceAP += "/" + calculateMean(entry.getValue());
+//            }
+            if (map.get("90:c7:d8:ba:38:b2") != null) distanceAP += "/" + calculateMean(map.get("90:c7:d8:ba:38:b2"));
+            if (map.get("04:4f:4c:0c:a2:bb") != null) distanceAP += "/" + calculateMean(map.get("04:4f:4c:0c:a2:bb"));
+            if (map.get("14:dd:a9:3c:88:59") != null) distanceAP += "/" + calculateMean(map.get("14:dd:a9:3c:88:59"));
             final String url ="http://10.151.36.172:9999/send" + distanceAP;
 
             StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
@@ -117,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onResponse(String response) {
                             // Display the first 500 characters of the response string.
-                            xy.setText("Response is: "+ response);
+                            xy.setText("URL: " + url + " Response is: "+ response);
                         }
                     }, new Response.ErrorListener() {
                 @Override
@@ -127,6 +149,16 @@ public class MainActivity extends AppCompatActivity {
             });
 
             queue.add(stringRequest);
+
+            WebView mapWebView = (WebView) findViewById(R.id.webview);
+            mapWebView.setWebViewClient(new WebViewClient());
+            mapWebView.clearCache(true);
+            mapWebView.clearHistory();
+            mapWebView.getSettings().setJavaScriptEnabled(true);
+            mapWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+            mapWebView.getSettings().setLoadWithOverviewMode(true);
+            mapWebView.getSettings().setUseWideViewPort(true);
+            mapWebView.loadUrl(url);
 
             for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
                 if (entry.getValue().size() > 10){
