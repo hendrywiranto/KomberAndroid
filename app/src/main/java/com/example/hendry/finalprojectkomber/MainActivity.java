@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,6 +14,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -47,10 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter adapter;
     private static DecimalFormat df2 = new DecimalFormat(".##");
     private static final Set<String> targetAP = new HashSet<String>(Arrays.asList(
-//            new String[] {"04:4f:4c:0c:a2:bb", "4c:5e:0c:9d:fb:ff", "90:c7:d8:ba:38:b2"} //huawei, ajk, andro
             new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "14:dd:a9:3c:88:59"} //huawei, andro, asus
-//            new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "0a:c5:e1:04:c6:bd"} //huawei, andro, zollav
-//            new String[] {"08:3f:bc:c0:aa:52", "4c:5e:0c:9d:fb:ff", "10:fe:ed:9b:93:ac"}
     ));
     Map<String, List<Integer>> map = new HashMap<String, List<Integer>>();
 
@@ -76,6 +75,10 @@ public class MainActivity extends AppCompatActivity {
 
         listView = (ListView) findViewById(R.id.wifiList);
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        WifiInfo info = wifiManager.getConnectionInfo();
+        String address = info.getMacAddress();
+        final EditText user_id = (EditText) findViewById(R.id.user_id);
+        user_id.setText(address);
 
         if (!wifiManager.isWifiEnabled()) {
             Toast.makeText(this, "WiFi is disabled ... We need to enable it", Toast.LENGTH_LONG).show();
@@ -124,41 +127,46 @@ public class MainActivity extends AppCompatActivity {
             }
 
             final TextView xy = (TextView) findViewById(R.id.xy);
+            final EditText user_id = (EditText) findViewById(R.id.user_id);
+            String user_id_value = user_id.getText().toString();
             RequestQueue queue = Volley.newRequestQueue(context);
             String distanceAP = "";
 //            for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
 //                distanceAP += "/" + calculateMean(entry.getValue());
 //            }
-            if (map.get("90:c7:d8:ba:38:b2") != null) distanceAP += "/" + calculateMean(map.get("90:c7:d8:ba:38:b2"));
-            if (map.get("04:4f:4c:0c:a2:bb") != null) distanceAP += "/" + calculateMean(map.get("04:4f:4c:0c:a2:bb"));
-            if (map.get("14:dd:a9:3c:88:59") != null) distanceAP += "/" + calculateMean(map.get("14:dd:a9:3c:88:59"));
-            final String url ="http://10.151.36.172:9999/send" + distanceAP;
+//            if (map.get("90:c7:d8:ba:38:b2") != null) distanceAP += "/" + calculateMean(map.get("90:c7:d8:ba:38:b2"));
+//            if (map.get("04:4f:4c:0c:a2:bb") != null) distanceAP += "/" + calculateMean(map.get("04:4f:4c:0c:a2:bb"));
+//            if (map.get("14:dd:a9:3c:88:59") != null) distanceAP += "/" + calculateMean(map.get("14:dd:a9:3c:88:59"));
+            double r1 = 2, r2 = 0, r3 = 1;
+            if (map.get("90:c7:d8:ba:38:b2") != null) r1 = calculateMean(map.get("90:c7:d8:ba:38:b2"));
+            if (map.get("04:4f:4c:0c:a2:bb") != null) r2 = calculateMean(map.get("04:4f:4c:0c:a2:bb"));
+            if (map.get("14:dd:a9:3c:88:59") != null) r3 = calculateMean(map.get("14:dd:a9:3c:88:59"));
 
-            StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                    new Response.Listener<String>() {
-                        @Override
-                        public void onResponse(String response) {
-                            // Display the first 500 characters of the response string.
-                            xy.setText("URL: " + url + " Response is: "+ response);
-                        }
-                    }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    xy.setText("That didn't work! " + error.toString() + "URL: " + url);
-                }
-            });
+            double x1 = 0, y1 = 10;
+            double x2 = 10, y2 = 10;
+            double x3 = 6, y3 = 0;
 
-            queue.add(stringRequest);
+            double A = -2*x1 + 2*x2;
+            double B = -2*y1 + 2*y2;
+            double C = r1*r1 - r2*r2 - x1*x1 + x2*x2 - y1*y1 + y2*y2;
+            double D = -2*x2 + 2*x3;
+            double E = -2*y2 + 2*y3;
+            double F = r2*r2 - r3*r3 - x2*x2 + x3*x3 - y2*y2 + y3*y3;
 
-            WebView mapWebView = (WebView) findViewById(R.id.webview);
-            mapWebView.setWebViewClient(new WebViewClient());
-            mapWebView.clearCache(true);
-            mapWebView.clearHistory();
-            mapWebView.getSettings().setJavaScriptEnabled(true);
-            mapWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-            mapWebView.getSettings().setLoadWithOverviewMode(true);
-            mapWebView.getSettings().setUseWideViewPort(true);
-            mapWebView.loadUrl(url);
+            double x = (C*E - F*B) / (E*A - B*D);
+            double y = (C*D - A*F) / (B*D - A*E);
+
+            final String url ="http://10.151.36.172:9999/" + user_id_value + "/" + Double.toString(x) + "/" + Double.toString(y);
+            xy.setText(url);
+//            WebView mapWebView = (WebView) findViewById(R.id.webview);
+//            mapWebView.setWebViewClient(new WebViewClient());
+//            mapWebView.clearCache(true);
+//            mapWebView.clearHistory();
+//            mapWebView.getSettings().setJavaScriptEnabled(true);
+//            mapWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+//            mapWebView.getSettings().setLoadWithOverviewMode(true);
+//            mapWebView.getSettings().setUseWideViewPort(true);
+//            mapWebView.loadUrl(url);
 
             for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
                 if (entry.getValue().size() > 10){
