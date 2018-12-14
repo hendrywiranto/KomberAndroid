@@ -49,7 +49,8 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter adapter;
     private static DecimalFormat df2 = new DecimalFormat(".##");
     private static final Set<String> targetAP = new HashSet<String>(Arrays.asList(
-            new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "14:dd:a9:3c:88:59"} //huawei, andro, asus
+//            new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "14:dd:a9:3c:88:59"} //huawei, andro, asus
+            new String[] {"04:4f:4c:0c:a2:bb", "90:c7:d8:ba:38:b2", "0a:c5:e1:04:c6:bd"} //huawei, andro, zolav
     ));
     Map<String, List<Integer>> map = new HashMap<String, List<Integer>>();
 
@@ -75,10 +76,8 @@ public class MainActivity extends AppCompatActivity {
 
         listView = (ListView) findViewById(R.id.wifiList);
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        WifiInfo info = wifiManager.getConnectionInfo();
-        String address = info.getMacAddress();
         final EditText user_id = (EditText) findViewById(R.id.user_id);
-        user_id.setText(address);
+        user_id.setText(android.os.Build.MODEL);
 
         if (!wifiManager.isWifiEnabled()) {
             Toast.makeText(this, "WiFi is disabled ... We need to enable it", Toast.LENGTH_LONG).show();
@@ -94,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
         map.clear();
         arrayList.clear();
         adapter.notifyDataSetChanged();
+        WebView mapWebView = (WebView) findViewById(R.id.webview);
+        mapWebView.loadUrl("about:blank");
     }
 
     private void scanWifi() {
@@ -137,10 +138,10 @@ public class MainActivity extends AppCompatActivity {
 //            if (map.get("90:c7:d8:ba:38:b2") != null) distanceAP += "/" + calculateMean(map.get("90:c7:d8:ba:38:b2"));
 //            if (map.get("04:4f:4c:0c:a2:bb") != null) distanceAP += "/" + calculateMean(map.get("04:4f:4c:0c:a2:bb"));
 //            if (map.get("14:dd:a9:3c:88:59") != null) distanceAP += "/" + calculateMean(map.get("14:dd:a9:3c:88:59"));
-            double r1 = 2, r2 = 0, r3 = 1;
+            double r1 = 0, r2 = 0, r3 = 0;
             if (map.get("90:c7:d8:ba:38:b2") != null) r1 = calculateMean(map.get("90:c7:d8:ba:38:b2"));
             if (map.get("04:4f:4c:0c:a2:bb") != null) r2 = calculateMean(map.get("04:4f:4c:0c:a2:bb"));
-            if (map.get("14:dd:a9:3c:88:59") != null) r3 = calculateMean(map.get("14:dd:a9:3c:88:59"));
+            if (map.get("0a:c5:e1:04:c6:bd") != null) r3 = calculateMean(map.get("0a:c5:e1:04:c6:bd"));
 
             double x1 = 0, y1 = 10;
             double x2 = 10, y2 = 10;
@@ -158,15 +159,16 @@ public class MainActivity extends AppCompatActivity {
 
             final String url ="http://10.151.36.172:9999/" + user_id_value + "/" + Double.toString(x) + "/" + Double.toString(y);
             xy.setText(url);
-//            WebView mapWebView = (WebView) findViewById(R.id.webview);
-//            mapWebView.setWebViewClient(new WebViewClient());
-//            mapWebView.clearCache(true);
-//            mapWebView.clearHistory();
-//            mapWebView.getSettings().setJavaScriptEnabled(true);
-//            mapWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-//            mapWebView.getSettings().setLoadWithOverviewMode(true);
-//            mapWebView.getSettings().setUseWideViewPort(true);
-//            mapWebView.loadUrl(url);
+
+            WebView mapWebView = (WebView) findViewById(R.id.webview);
+            mapWebView.setWebViewClient(new WebViewClient());
+            mapWebView.clearCache(true);
+            mapWebView.clearHistory();
+            mapWebView.getSettings().setJavaScriptEnabled(true);
+            mapWebView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+            mapWebView.getSettings().setLoadWithOverviewMode(true);
+            mapWebView.getSettings().setUseWideViewPort(true);
+            mapWebView.loadUrl(url);
 
             for (Map.Entry<String, List<Integer>> entry : map.entrySet()) {
                 if (entry.getValue().size() > 10){
